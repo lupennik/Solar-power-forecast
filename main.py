@@ -1,7 +1,9 @@
-import math
+import re
+import urllib.request
 from apixu.client import ApixuClient, ApixuException
 # more info about requests: https://www.apixu.com/doc/request.aspx,
 # more info about api: ./apixu/client.py or https://github.com/apixu/apixu-python
+# azimuth and altitude angles data source: http://aa.usno.navy.mil/data/docs/AltAz.php
 
 api_key = '124b5f7f100647aca80135859172911' #my personal API-key
 client = ApixuClient(api_key)
@@ -15,6 +17,20 @@ dt = input("Forecast day in 'yyyy-mm-dd' format, (1-10 day range): ")
 hour = input("Forecast hour (1-24): ")
 q = input("City name (in english): ")
 
+#get sun azimuth and altitude angles 
+# (now it's for Prague)
+url = 'http://aa.usno.navy.mil/cgi-bin/aa_altazw.pl?form=2&body=10' \
+      '&year=' + dt[:4] + '&month=' + dt[5:7] + '&day=' + dt[8:10] + '&intv_mag=60&place=Prague&lon_sign=1&lon_deg=' \
+      '14&lon_min=25&lat_sign=1&lat_deg=50&lat_min=5&tz=1&tz_sign=-1'
+data = urllib.request.urlopen(url).read()
+decoded_data = data.decode('utf-8')
+#TODO: search for angles in request
+""""
+m = re.search('<span class="phrase">', decoded_data)
+new_str = decoded_data[m.end():m.end()+300]
+m = re.search('</span>', new_str)
+new_str = new_str[:m.start()]
+"""
 
 """Parameters of getForecastWeather: q='location', dt='yyyy-mm-dd' - forecast date restriction, 'hour' - forecast hour restriction.
 Response is in dictionary format."""
