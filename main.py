@@ -20,7 +20,7 @@ print(requested_forecast['location']['country']) # name of country
 max_load = 5 #kWp
 panel_azimuth = 180
 tilt = 65
-dt = '2018-01-04'
+dt = '2018-02-09'
 hour = 17
 q = 'Prague'
 lon = 14
@@ -29,6 +29,7 @@ lat = 50
 lat_min = 5
 longitude = 14.25
 latitude =  50.5
+offset = 0
 
 # Clouds
 #https://github.com/bitpixdigital/forecastiopy3
@@ -40,9 +41,12 @@ clouds = []
 hourly = FIOHourly.FIOHourly(fio)
 print('Filling array of clouds...')
 for hour in range(0, hourly.hours()):
-    print('Hour', hour+1)
     clouds.append(hourly.get_hour(hour)['cloudCover'])
-#print(clouds)
+
+clouds = [0.46, 0.46, 0.46, 0.46, 0.46, 0.46, 0.46, 0.46, 0.46, 0.46]
+print(clouds)
+
+
 
 # Angles
 # Sun azimuth and altitude angles data source: http://aa.usno.navy.mil/data/docs/AltAz.php
@@ -54,30 +58,46 @@ url = 'http://aa.usno.navy.mil/cgi-bin/aa_altazw.pl?form=2&body=10' \
 data = urllib.request.urlopen(url).read()
 decoded_data = data.decode('utf-8')
 print(url)
+
 #TODO: bad search, make better
 m = re.search('h  m', decoded_data)
 new_str = decoded_data[m.end()+232:m.end()+550]
 new_str = new_str.split()
-#print(new_str)
+print(new_str)
 
 sun_elevations = []
 sun_azimuths = []
+panel_angle_loss_koef = []
+
 #TODO: hours range fix
+sml_str = new_str[0].split(':')
+hour_st = int(sml_str[0])
+
 for i in range(0, len(new_str), 3):
       sml_str = new_str[i].split(':')
-      if (int(sml_str[0]) == hour):
-            sun_elevations.append(float(new_str[i + 1]))
-            sun_azimuths.append(float(new_str[i + 2]))
+      sun_elevations.append(float(new_str[i + 1]))
+      sun_azimuths.append(float(new_str[i + 2]))
+      panel_angle_loss_koef.append(sin(radians(tilt)) * cos(radians(float(new_str[i + 1]))) * cos(
+            radians(panel_azimuth) - radians(float(new_str[i + 2]))) + cos(radians(tilt)) * sin(
+            radians(float(new_str[i + 1]))))
+      hour_en = int(sml_str[0])
+#print(sun_elevations)
+#print(sun_azimuths)
+print(panel_angle_loss_koef)
 
 
-"""
 # The equation from https://www.tudelft.nl/en/eemcs/the-faculty/departments/electrical-sustainable-energy/
 # photovoltaic-materials-and-devices/dutch-pv-portal/the-model/sun-position-and-components/
-panel_angle_loss_koef = sin(radians(tilt))*cos(radians(sun_elevation))*cos(radians(panel_azimuth)-radians(sun_azimuth))+cos(radians(tilt))*sin(radians(sun_elevation))
-print("Percantage of solar irradiation with respect to panel orientation: " + str(panel_angle_loss_koef))
 
-clouds_coef = 0.5
-effic_coef = panel_angle_loss_koef * clouds_coef
+effic_coef = []
+for i in range(hour_st, hour_en + 1):
+    print(clouds[i - hour_st - 1 + offset])
+    effic_coef.append(panel_angle_loss_koef[i - hour_st] * (1 - clouds[i - hour_st - 1 + offset]))
+    print(str(i) + ': ' + str(panel_angle_loss_koef[i - hour_st] * (1 - clouds[i - hour_st - 1 + offset]) * int(max_load)))
 
-print(effic_coef * int(max_load))
-"""
+print("Efficience coeficients array: " + str(effic_coef))
+
+for i in range(0, len(effic_coef)):
+    effic_coef[i] = effic_coef[i] * int(max_load)
+print(effic_coef)
+
