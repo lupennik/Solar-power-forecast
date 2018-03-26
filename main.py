@@ -11,8 +11,8 @@ panel_azimuth = 180
 panel_tilt = 65
 
 #forecast time
-forecast_date = '2018-02-13'
-forecast_hour = '10'
+forecast_date = '2018-02-15'
+forecast_hour = '15'
 
 #forecast coordinates (50°06'10.7"N 14°23'30.3"E - FEL ČVUT)
 city_name = 'Prague'
@@ -25,15 +25,21 @@ lat_min = 6
 longitude = 14.23
 latitude =  50.6
 
-#input
-very_big_weather_list = write_weather_to_file(API_key, country_shortcut, city_name)
+
+
+# read_w_history_from_file(parameters)
+par, samples = write_w_history_to_file(forecast_date, 5, API_key, country_shortcut, city_name, parameters)
+
+
+"""
+input
+very_big_weather_list = read_weather_from_file() #if weather is empty or too old: write_weather_to_file(API_key, country_shortcut, city_name)
 angles = write_sun_angles_to_file(forecast_date, city_name, lat, lat_min, lon, lon_min).split()
-astronomy = read_astronomic_from_file()
+astronomy = read_astronomic_from_file() #read_astronomic_from_file
 
 #find_forecast_for_hour(very_big_weather_list, angles, astronomy, forecast_hour, forecast_date, panel_tilt, panel_azimuth, max_load)
-
 find_forecast_for_day(very_big_weather_list, angles, astronomy, forecast_date, panel_tilt, panel_azimuth, max_load, wanna_graf)
-
+"""
 
 
 """

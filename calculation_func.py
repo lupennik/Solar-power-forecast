@@ -36,13 +36,15 @@ def find_forecast_for_day(very_big_weather_list, angles, astronomy, forecast_dat
     if (wanna_graf == True):
         t = np.arange(start, end, 1)
         fig, ax = plt.subplots()
-        ax.plot(t, kws)
+        ax.plot(t, kws, 'ro', label = "My model")
+        ax.plot(t, [0.9, 1.8, 2.6, 2.9, 2.2, 0.8, 0.8, 0.8, 0.6, 0.2], 'g--', label = "Forkast") #ax.plot(t, [compared graf], 'g')
         ax.set(xlabel='time (hours)', ylabel='power (kW)',
                title='Power forecast for ' + forecast_date)
+        ax.legend()
         ax.grid()
-        fig.savefig("forecast_" + forecast_date + ".png")
-        plt.xlim(0, 24)
+        plt.xlim(7, 18)
         plt.ylim(0, 5)
+        fig.savefig("forecast_angle" + forecast_date + ".png")
         plt.show()
 
     print(kws)
