@@ -64,10 +64,11 @@ parameters = ["fog", "hail", "heatingdegreedays", "humidity", "maxdewpti", "maxd
               "minpressurem",
               "mintempi", "mintempm", "minvisi", "minvism", "minwspdi", "minwspdm", "rain", "snow"]
 
-#writes history weather using API from forecast date to (forecast date - n_days)
-def write_w_history_to_file(forecast_date, n_days, API_key, country_shortcut, city_name, params):
+def write_w_history_to_file(forecast_date, n_days, API_key, country_shortcut, city_name):
     date = datetime.datetime(int(forecast_date[:4]), int(forecast_date[5:7]), int(forecast_date[8:10]))
-    parsed_json = {}
+    with open("history", 'r') as fr:
+        parsed_json = json.loads(fr.read())
+
     statistic_data = [[] for i in range(n_days)]
 
     for i in range(n_days):
@@ -75,20 +76,23 @@ def write_w_history_to_file(forecast_date, n_days, API_key, country_shortcut, ci
         f = urlopen('http://api.wunderground.com/api/' + API_key + '/' + 'history_' + d_iso[:4] + d_iso[5:7] + d_iso[8:10] + '/q' + '/' + country_shortcut + '/' + city_name + '.json')
         json_string = f.read()
         f.close()
-        parsed_json[d_iso[:10]] = json.loads(json_string)
 
-        with open("history", 'w') as fw:
-            fw.write(json.dumps(parsed_json, indent=4, sort_keys=True))
+        if (d_iso[:10] not in parsed_json or parsed_json[d_iso[:10]] != json.loads(json_string)):
+            parsed_json[d_iso[:10]] = json.loads(json_string)
+            with open("history", 'w') as fw:
+                fw.write(json.dumps(parsed_json, indent=4, sort_keys=True))
 
-        for item in params:
+        for item in parameters:
             statistic_data[i].append(parsed_json[d_iso[:10]]["history"]["dailysummary"][0][item])
 
         date -= datetime.timedelta(days=1)
 
     return statistic_data
 
-def read_w_history_from_file(forecast_date, n_days, params):
-    f_d = forecast_date
+def read_w_history_from_file(forecast_date, n_days):
+    date = datetime.datetime(int(forecast_date[:4]), int(forecast_date[5:7]), int(forecast_date[8:]))
+    d_iso = date.isoformat()
+
     fr = open("history", 'r')
     json_string = fr.read()
     fr.close()
@@ -97,9 +101,11 @@ def read_w_history_from_file(forecast_date, n_days, params):
     statistic_data = [[] for i in range(n_days)]
 
     for i in range(n_days):
-        for item in params:
-            statistic_data[i].append(parsed_json[f_d]["history"]["dailysummary"][0][item])
+        for item in parameters:
+            statistic_data[i].append(parsed_json[d_iso[:10]]["history"]["dailysummary"][0][item])
 
-        f_d = f_d[:8] +  str(int(f_d[8:10]) - 1)
+        date -= datetime.timedelta(days=1)
+        d_iso = date.isoformat()
+
 
     return statistic_data
