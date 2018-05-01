@@ -1,28 +1,28 @@
 {
     "moon_phase": {
-        "ageOfMoon": "26",
+        "ageOfMoon": "29",
         "current_time": {
-            "hour": "18",
-            "minute": "30"
+            "hour": "23",
+            "minute": "11"
         },
         "hemisphere": "North",
         "moonrise": {
-            "hour": "4",
+            "hour": "6",
             "minute": "21"
         },
         "moonset": {
-            "hour": "13",
-            "minute": "13"
+            "hour": "19",
+            "minute": "10"
         },
-        "percentIlluminated": "15",
+        "percentIlluminated": "0",
         "phaseofMoon": "Waning Crescent",
         "sunrise": {
-            "hour": "7",
-            "minute": "20"
+            "hour": "6",
+            "minute": "09"
         },
         "sunset": {
-            "hour": "17",
-            "minute": "13"
+            "hour": "19",
+            "minute": "56"
         }
     },
     "response": {
@@ -34,12 +34,12 @@
     },
     "sun_phase": {
         "sunrise": {
-            "hour": "7",
-            "minute": "20"
+            "hour": "6",
+            "minute": "09"
         },
         "sunset": {
-            "hour": "17",
-            "minute": "13"
+            "hour": "19",
+            "minute": "56"
         }
     }
 }

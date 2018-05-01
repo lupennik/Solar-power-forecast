@@ -192,3 +192,28 @@ def write_data_for_wh_and_ph():
 
     with open('weather_history', 'w') as fw:
         fw.write(json.dumps(lst_power))
+def clouds_collection_wg(forecast_date, n_days, API_key, country_shortcut, city_name):
+    date = datetime.datetime(int(forecast_date[:4]), int(forecast_date[5:7]), int(forecast_date[8:10]))
+    with open("weather_history", 'r') as fr:
+        parsed_json = json.loads(fr.read())
+
+    statistic_data = [[] for i in range(n_days)]
+
+    for i in range(n_days):
+        d_iso = date.isoformat()
+    f = urlopen('http://api.wunderground.com/api/' + API_key + '/' + 'history_' + d_iso[:4] + d_iso[5:7] + d_iso[
+                                                                                                           8:10] + '/q' + '/' + country_shortcut + '/' + city_name + '.json')
+    json_string = f.read()
+    f.close()
+
+    if (d_iso[:10] not in parsed_json or parsed_json[d_iso[:10]] != json.loads(json_string)):
+        parsed_json[d_iso[:10]] = json.loads(json_string)
+    with open("weather_history", 'w') as fw:
+        fw.write(json.dumps(parsed_json, indent=4, sort_keys=True))
+
+    for item in parameters:
+        statistic_data[i].append(parsed_json[d_iso[:10]]["weather_history"]["dailysummary"][0][item])
+
+    date -= datetime.timedelta(days=1)
+
+    return statistic_data
