@@ -1,69 +1,72 @@
 import scipy as sp
 import pickle
 import matplotlib.pyplot as plt
-import random
 from sklearn.svm import SVR
-from sklearn.model_selection import train_test_split
-from sklearn.model_selection import cross_val_score
-from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_predict
 from sklearn import preprocessing
 
 
-def svm_run():
-    data = read_data(False)
-    DRAW_N = 50 # days amount to be plotted
+def svm_run(is_model_in_file):
+    data = read_data(True)
+    DRAW_N = 50  # days amount to be plotted
+    training_features, testing_features, training_labels, testing_labels = train_test_split(data[:, :-1], data[:, -1],
+                                                                                            test_size=0.4)
+    if is_model_in_file:
+        with open('data/model', 'rb') as f:
+            clf = pickle.load(f)
+    else:
+        # MODEL PARAMETERS SELECTION BY CROSS-VALIDATION
+        tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1, 1e-2, 1e-3],
+                             'C': [10, 100, 1000]}]
+        clf = GridSearchCV(param_grid=tuned_parameters, estimator=SVR(), cv=5)
+        clf.fit(training_features, training_labels)
 
-    training_features, testing_features, training_labels, testing_labels = train_test_split(data[:, :-1], data[:, -1], test_size=0.4)
-
-    # MODEL PARAMETERS SELECTION BY CROSS-VALIDATION
-    tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
-                         'C': [1, 10, 100, 1000]}]
-    clf = GridSearchCV(param_grid=tuned_parameters, estimator=SVR(), cv=5)
-    clf.fit(training_features, training_labels)
     print(clf.best_params_)
+    print("Accuracy: %0.2f" % clf.best_score_)
 
     # MODEL VALIDATION BY KFOLDERS
     # print(clf.score(testing_features, testing_labels))
     # scores = cross_val_score(clf, data[:, :-1], data[:, -1], cv=5)
-    print("Accuracy: %0.2f" % clf.best_score_)
 
     y_rbf = clf.predict(testing_features)
 
-    if DRAW_N < testing_labels.shape[0]:
-        fig, ax = plt.subplots()
-        ax.plot(sp.arange(DRAW_N), testing_labels[:DRAW_N], color='g', lw=2, label='Real data')
-        ax.plot(sp.arange(DRAW_N), y_rbf[:DRAW_N], color='navy', lw=2, label='RBF model')
-        plt.legend(loc='upper right')
-        fig.savefig("graphs/SVR_vol.01_" + str(random.randint(0, 10000)) + ".png")
-        plt.show()
-    else:
-        print("too high DRAW_N")
+    # CROSS VALIDATION PREDICT + GRAPH
+    # y_rbf = cross_val_predict(clf, testing_features, testing_labels, cv=10)
+    # fig, ax = plt.subplots()
+    # ax.scatter(testing_labels, y_rbf, edgecolors=(0, 0, 0))
+    # ax.plot([testing_labels.min(), testing_labels.max()], [testing_labels.min(), testing_labels.max()], 'k--', lw=4)
+    # ax.set_xlabel('Measured')
+    # ax.set_ylabel('Predicted')
+    # fig.savefig("graphs/SVR_vol.01_" + str(random.randint(0, 10000)) + ".png")
+    # plt.show()
+
+    # heat map (temp, sun_irrad) => power
+
+
+
+    # DISPLAYING SCATTER PLOTS OF FEATURES
+    # fig, ax = plt.subplots()
+    # ax.scatter(testing_features[:, 6], testing_labels, edgecolors=(0, 0, 0))
+    # ax.set_ylabel('Measured power')
+    # ax.set_xlabel('Temp_min')
+    # fig.savefig("graphs/SVR_vol.01_" + str(random.randint(0, 10000)) + ".png")
+    # plt.show()
+
+    # DRRAWING REGRESSION EXAMPLE
+    # if DRAW_N < testing_labels.shape[0]:
+    #     fig, ax = plt.subplots()
+    #     ax.plot(sp.arange(DRAW_N), testing_labels[:DRAW_N], color='g', lw=2, label='Real data')
+    #     ax.plot(sp.arange(DRAW_N), y_rbf[:DRAW_N], color='navy', lw=2, label='RBF model')
+    #     plt.legend(loc='upper right')
+    #     plt.xlabel('SVM regression with parameters' + str(clf.best_params_)+ '. Accuracy: ' + str(clf.best_score_))
+    #     fig.savefig("graphs/SVR_vol.01_" + str(random.randint(0, 10000)) + ".png")
+    #     plt.show()
+    # else:
+    #     print("too high DRAW_N")
 
     # MODEL PERSISTENCE
     with open('data/model', 'wb') as f:
         pickle.dump(clf, f)
-
-# sun_rad / power plot + another subgraph with testing data
-# heat map (temp, sun_irrad) => power
-def visualise_data(data):
-    # xx, yy = sp.meshgrid(sp.linspace(-4, 4, 100),
-    #                      sp.linspace(-4, 4, 100))
-    # X = sp.array([data[r_test_idx[:TEST_SAMPLES_N], -1], data[r_test_idx[:TEST_SAMPLES_N], 4]])
-    # X = sp.transpose(X)
-    # clf = EllipticEnvelope(contamination=0.05)
-    # y_pred = clf.fit(X).predict(X)
-    # Z = clf.predict(sp.c_[xx.ravel(), yy.ravel()])
-    # Z = Z.reshape(xx.shape)
-    # plt.contour(xx, yy, Z, levels=[0], linewidths=2, colors='black')
-    #
-    # colors = sp.array(['#377eb8', '#ff7f00'])
-    # plt.scatter(X[:, 0], X[:, 1], s=10, color=colors[(y_pred + 1) // 2])
-
-    # print(pearsonr(data[r_test_idx[:TEST_SAMPLES_N], 5], data[r_test_idx[:TEST_SAMPLES_N], 6]))
-    # print(pearsonr(data[r_test_idx[:TEST_SAMPLES_N], 5], data[r_test_idx[:TEST_SAMPLES_N], 8]))
-    # plt.scatter(data[r_test_idx[:TEST_SAMPLES_N], 5], data[r_test_idx[:TEST_SAMPLES_N], 6])
-    plt.savefig("graphs/pic" + str(random.randint(0, 10000)) + ".png")
-    plt.show()
 
 def preproces(data, slopes_needed):
     training_data = data
@@ -114,11 +117,11 @@ def read_data(is_in_data_file):
     data = sp.vstack([weather_data, power_data])
     data = data.transpose()
     # SELECT FILES TO BE INCLUDED IN COMPUTATION, POWER DATA ARE ALWAYS AT DATA[-1] !!!
-    data = preproces(data, [0, 1, 2, 3, 7, 8, 4, -1])
+    data = preproces(data, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
     # WRITING OUTPUT DATA TO FILE 'DATA'
     with open('data/data', 'wb') as f:
         pickle.dump(data, f)
     return data
 
-svm_run()
+svm_run(False)
