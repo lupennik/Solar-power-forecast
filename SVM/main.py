@@ -5,24 +5,29 @@ import random
 from sklearn.svm import SVR
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
-from scipy.stats import pearsonr
+from sklearn.model_selection import GridSearchCV
 from sklearn import preprocessing
 
 
 def svm_run():
     data = read_data(False)
-    DRAW_N = 50
+    DRAW_N = 50 # days amount to be plotted
 
     training_features, testing_features, training_labels, testing_labels = train_test_split(data[:, :-1], data[:, -1], test_size=0.4)
 
-    clf = SVR(kernel='rbf', C=2, gamma=0.5)
+    # MODEL PARAMETERS SELECTION BY CROSS-VALIDATION
+    tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-3, 1e-4],
+                         'C': [1, 10, 100, 1000]}]
+    clf = GridSearchCV(param_grid=tuned_parameters, estimator=SVR(), cv=5)
     clf.fit(training_features, training_labels)
-    y_rbf = clf.predict(testing_features)
+    print(clf.best_params_)
 
-    # validation of the model
+    # MODEL VALIDATION BY KFOLDERS
     # print(clf.score(testing_features, testing_labels))
-    scores = cross_val_score(clf, data[:, :-1], data[:, -1], cv=5)
-    print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
+    # scores = cross_val_score(clf, data[:, :-1], data[:, -1], cv=5)
+    print("Accuracy: %0.2f" % clf.best_score_)
+
+    y_rbf = clf.predict(testing_features)
 
     if DRAW_N < testing_labels.shape[0]:
         fig, ax = plt.subplots()
@@ -34,10 +39,13 @@ def svm_run():
     else:
         print("too high DRAW_N")
 
+    # MODEL PERSISTENCE
+    with open('data/model', 'wb') as f:
+        pickle.dump(clf, f)
 
 # sun_rad / power plot + another subgraph with testing data
 # heat map (temp, sun_irrad) => power
-def visualise_data():
+def visualise_data(data):
     # xx, yy = sp.meshgrid(sp.linspace(-4, 4, 100),
     #                      sp.linspace(-4, 4, 100))
     # X = sp.array([data[r_test_idx[:TEST_SAMPLES_N], -1], data[r_test_idx[:TEST_SAMPLES_N], 4]])
@@ -60,31 +68,34 @@ def visualise_data():
 def preproces(data, slopes_needed):
     training_data = data
     training_data = sp.array(training_data[:, slopes_needed])
+    training_data[:, :-1] = preprocessing.scale(training_data[:, :-1])
 
+    # FEATURES SELECTION MAY BE OPTIONAL, CAN CAUSE SVM OVERFITTING !!!
     # overliers reducing with std dev
-    mean = sp.mean(training_data, axis=0)
-    sd = sp.std(training_data, axis=0)
+    # mean = sp.mean(training_data, axis=0)
+    # sd = sp.std(training_data, axis=0)
 
-    for i in range(training_data.shape[1]):
-        training_data = training_data[training_data[:, i] < mean[i] + 2 * sd[i]]
-        training_data = training_data[training_data[:, i] > mean[i] - 2 * sd[i]]
+    # for i in range(training_data.shape[1]):
+    #     training_data = training_data[training_data[:, i] < mean[i] + 2 * sd[i]]
+    #     training_data = training_data[training_data[:, i] > mean[i] - 2 * sd[i]]
 
     # specific features manipulation ! SUN DAY DURATION AT DATA[4] AND POWER INFO AT DATA[-1] !
-    training_data = training_data[training_data[:, -1] > 20]
-    training_data = training_data[training_data[:, -1] < 650]
-    # training_data = training_data[training_data[:, 4] > 8]
-    # training_data = training_data[training_data[:, 4] < 16.5]
+    # training_data = training_data[training_data[:, -1] > 20]
+    # training_data = training_data[training_data[:, -1] < 650]
+    # training_data = training_data[training_data[:, ] > 8]
+    # training_data = training_data[training_data[:, ] < 16.5]
 
     sp.random.shuffle(training_data)
     return training_data
 
+# NAMES OF FILES IN DATA FOLDER
 filenames = ['Air_moisture_perc.csv', 'Humidity_mm.csv', 'Pressure_mean_hpa.csv',
             'Snow_h_cm.csv', 'Sun_irrad_hours.csv', 'Temp_max.csv', 'Temp_min.csv',
             'Wind_mean.csv', 'Temp_mean.csv']
 
 def read_data(is_in_data_file):
 
-    # if true, file data read
+    # READ DATE IF IS AVAILABLE
     if (is_in_data_file):
         with open('data/data', 'rb') as f:
             data = pickle.load(f)
@@ -95,18 +106,19 @@ def read_data(is_in_data_file):
     weather_data = sp.stack([x.flatten() for x in sp.delete([sp.genfromtxt("data/" + filename, delimiter=",") for filename in filenames], [0, 1], 2)])
     weather_data = sp.delete(weather_data, sp.s_[:18], 1)
 
-    # preprocessing
-    # reduce missing data
+    # PREPROCESSING
+    # REDUCE BROKEN DATA
     weather_data = sp.stack(x[~sp.isnan(x)] for x in weather_data)
     weather_data = sp.stack(x[~sp.isnan(power_data)] for x in weather_data)
     power_data = power_data[~sp.isnan(power_data)]
     data = sp.vstack([weather_data, power_data])
     data = data.transpose()
-    data = preproces(data, [4, -1])
+    # SELECT FILES TO BE INCLUDED IN COMPUTATION, POWER DATA ARE ALWAYS AT DATA[-1] !!!
+    data = preproces(data, [0, 1, 2, 3, 7, 8, 4, -1])
 
-    # writing output data to file data
-    # with open('data/data', 'wb') as f:
-    #     pickle.dump(data, f)
+    # WRITING OUTPUT DATA TO FILE 'DATA'
+    with open('data/data', 'wb') as f:
+        pickle.dump(data, f)
     return data
 
 svm_run()
