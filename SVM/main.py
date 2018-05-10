@@ -1,9 +1,17 @@
-import scipy as sp
 import pickle
+import random
+
 import matplotlib.pyplot as plt
-from sklearn.svm import SVR
-from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_predict
+import scipy as sp
+from matplotlib.ticker import FuncFormatter
 from sklearn import preprocessing
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, cross_val_predict
+from sklearn.svm import SVR
+
+
+def to_percent(y, position):
+    s = str(100 * y)
+    return s + '%'
 
 
 def svm_run(is_model_in_file):
@@ -18,30 +26,46 @@ def svm_run(is_model_in_file):
         # MODEL PARAMETERS SELECTION BY CROSS-VALIDATION
         tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1, 1e-2, 1e-3],
                              'C': [10, 100, 1000]}]
-        clf = GridSearchCV(param_grid=tuned_parameters, estimator=SVR(), cv=5)
+        clf = GridSearchCV(param_grid=tuned_parameters, estimator=SVR(), cv=5) # by default r2_score
         clf.fit(training_features, training_labels)
 
     print(clf.best_params_)
-    print("Accuracy: %0.2f" % clf.best_score_)
+    print("Training accuracy: %0.2f" % clf.best_score_)
 
     # MODEL VALIDATION BY KFOLDERS
     # print(clf.score(testing_features, testing_labels))
-    # scores = cross_val_score(clf, data[:, :-1], data[:, -1], cv=5)
+    # scores = cross_val_score(clf, testing_features, testing_labels, cv=5, scoring='neg_mean_absolute_error')
+    # print(scores.mean())
 
-    y_rbf = clf.predict(testing_features)
+    # y_rbf = clf.predict(testing_features)
 
-    # CROSS VALIDATION PREDICT + GRAPH
-    # y_rbf = cross_val_predict(clf, testing_features, testing_labels, cv=10)
-    # fig, ax = plt.subplots()
-    # ax.scatter(testing_labels, y_rbf, edgecolors=(0, 0, 0))
-    # ax.plot([testing_labels.min(), testing_labels.max()], [testing_labels.min(), testing_labels.max()], 'k--', lw=4)
-    # ax.set_xlabel('Measured')
-    # ax.set_ylabel('Predicted')
-    # fig.savefig("graphs/SVR_vol.01_" + str(random.randint(0, 10000)) + ".png")
+    # DRAWING A HISTOGRAM OF ABSOLUTE ERROR
+    # mean = sp.absolute(scores.mean())
+    # std = scores.std()
+    # num_bins = 30
+    # formatter = FuncFormatter(to_percent)
+    # x = sp.absolute(y_rbf - testing_labels)
+    # n, bins, patches = plt.hist(x, num_bins, ec='k', normed=True, facecolor='blue', alpha=0.5, cumulative=-1)
+    # plt.xlabel('Absolute error in kWh')
+    # plt.ylabel('Probability')
+    # plt.title(r'Histogram of absolute error of prediction on test set: $\mu=' + str(mean)[:5] + '$ , $\sigma=$' + str(std * 2)[:4])
+    # plt.yticks(sp.arange(0, 1.1, 0.1))
+    # plt.gca().yaxis.set_major_formatter(formatter)
     # plt.show()
 
-    # heat map (temp, sun_irrad) => power
+    # SAME AXIS LENGTH, TRANSPARENT (???) !!!
+    # CROSS VALIDATION PREDICT + GRAPH
+    y_rbf = cross_val_predict(clf, testing_features, testing_labels, cv=10)
+    fig, ax = plt.subplots()
+    ax.scatter(testing_labels, y_rbf, edgecolors=(0, 0, 0))
+    ax.plot([testing_labels.min(), testing_labels.max()], [testing_labels.min(), testing_labels.max()], 'k--', lw=4)
+    ax.set_xlabel('Measured')
+    ax.set_ylabel('Predicted')
+    plt.axis('scaled')
+    fig.savefig("graphs/SVR_vol.01_" + str(random.randint(0, 10000)) + ".png")
+    plt.show()
 
+    # heat map (temp, sun_irrad) => power
 
 
     # DISPLAYING SCATTER PLOTS OF FEATURES
@@ -63,10 +87,10 @@ def svm_run(is_model_in_file):
     #     plt.show()
     # else:
     #     print("too high DRAW_N")
-
-    # MODEL PERSISTENCE
-    with open('data/model', 'wb') as f:
-        pickle.dump(clf, f)
+    #
+    # # MODEL PERSISTENCE
+    # with open('data/model', 'wb') as f:
+    #     pickle.dump(clf, f)
 
 def preproces(data, slopes_needed):
     training_data = data
@@ -124,4 +148,4 @@ def read_data(is_in_data_file):
         pickle.dump(data, f)
     return data
 
-svm_run(False)
+svm_run(True)
